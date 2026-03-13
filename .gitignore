@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# Pytest
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Alembic / migrations cache
+*.sqlite3
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
