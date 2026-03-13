@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.gull_trackpoint import GullTrackPoint
+from app.schemas.analytics import TrackpointWeatherMatchRead
+from app.services.weather_match import find_best_weather_match
+
 from app.api.deps import get_db
 from app.models.gull import Gull
-from app.models.gull_trackpoint import GullTrackPoint
 from app.schemas.gull_trackpoint import (
     GullTrackPointCreate,
     GullTrackPointRead,
@@ -100,3 +103,43 @@ def delete_gull_trackpoint(trackpoint_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Gull trackpoint not found.")
     db.delete(trackpoint)
     db.commit()
+
+@router.get(
+    "/{trackpoint_id}/weather",
+    response_model=TrackpointWeatherMatchRead,
+    summary="Get the best matching weather observation for a trackpoint",
+)
+def get_trackpoint_weather(trackpoint_id: int, db: Session = Depends(get_db)):
+    trackpoint = db.get(GullTrackPoint, trackpoint_id)
+    if not trackpoint:
+        raise HTTPException(status_code=404, detail="Trackpoint not found.")
+
+    weather, distance_km, time_difference_minutes = find_best_weather_match(
+        db,
+        recorded_at=trackpoint.recorded_at,
+        latitude=trackpoint.latitude,
+        longitude=trackpoint.longitude,
+        hours_window=3,
+    )
+
+    if not weather:
+        raise HTTPException(
+            status_code=404,
+            detail="No matching weather observation found within the time window.",
+        )
+
+    return TrackpointWeatherMatchRead(
+        trackpoint_id=trackpoint.id,
+        gull_id=trackpoint.gull_id,
+        weather_id=weather.id,
+        trackpoint_recorded_at=trackpoint.recorded_at,
+        weather_observed_at=weather.observed_at,
+        time_difference_minutes=time_difference_minutes,
+        distance_km=distance_km,
+        match_method="nearest weather within ±3 hours by spatial distance",
+        temperature_c=weather.temperature_c,
+        precipitation_mm=weather.precipitation_mm,
+        wind_u=weather.wind_u,
+        wind_v=weather.wind_v,
+        surface_pressure=weather.surface_pressure,
+    )
