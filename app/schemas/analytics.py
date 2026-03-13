@@ -6,11 +6,16 @@ class TrackpointWeatherMatchRead(BaseModel):
     trackpoint_id: int
     gull_id: int
     weather_id: int
+
     trackpoint_recorded_at: datetime
     weather_observed_at: datetime
+
     time_difference_minutes: float
     distance_km: float
     match_method: str
+
+    latitude: float
+    longitude: float
 
     temperature_c: float | None = None
     precipitation_mm: float | None = None
