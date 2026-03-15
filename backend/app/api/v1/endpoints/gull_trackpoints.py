@@ -104,6 +104,7 @@ def delete_gull_trackpoint(trackpoint_id: int, db: Session = Depends(get_db)):
     db.delete(trackpoint)
     db.commit()
 
+
 @router.get(
     "/{trackpoint_id}/weather",
     response_model=TrackpointWeatherMatchRead,

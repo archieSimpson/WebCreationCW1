@@ -9,7 +9,64 @@ from app.schemas.analytics import GullMovementSummaryRead
 from app.schemas.gull import GullCreate, GullRead, GullUpdate
 from app.services.weather_match import find_best_weather_match
 from app.utils.geo import haversine_km
+
+from app.models.weather import WeatherObservation
+from app.schemas.gull_trackpoint import TrackpointWithWeatherRead
+
 router = APIRouter()
+
+
+@router.get("/{gull_id}/route-with-weather", response_model=list[TrackpointWithWeatherRead])
+def get_gull_route_with_weather(
+    gull_id: int,
+    db: Session = Depends(get_db),
+):
+    gull = db.get(Gull, gull_id)
+    if not gull:
+        raise HTTPException(status_code=404, detail="Gull not found.")
+
+    trackpoints = db.execute(
+        select(GullTrackPoint)
+        .where(GullTrackPoint.gull_id == gull_id)
+        .order_by(GullTrackPoint.recorded_at)
+    ).scalars().all()
+
+    if not trackpoints:
+        return []
+
+    results = []
+
+    for tp in trackpoints:
+        weather = db.execute(
+            select(WeatherObservation)
+            .where(WeatherObservation.year == tp.recorded_at.year)
+            .order_by(
+                (WeatherObservation.latitude - tp.latitude) * (WeatherObservation.latitude - tp.latitude) +
+                (WeatherObservation.longitude - tp.longitude) * (WeatherObservation.longitude - tp.longitude)
+            )
+        ).scalars().first()
+
+        results.append(
+            {
+                "id": tp.id,
+                "gull_id": tp.gull_id,
+                "recorded_at": tp.recorded_at,
+                "latitude": tp.latitude,
+                "longitude": tp.longitude,
+                "event_id": getattr(tp, "event_id", None),
+                "sensor_type": getattr(tp, "sensor_type", None),
+                "visible": getattr(tp, "visible", None),
+                "temperature_c": weather.temperature_c if weather else None,
+                "precipitation_mm": weather.precipitation_mm if weather else None,
+                "wind_u": weather.wind_u if weather else None,
+                "wind_v": weather.wind_v if weather else None,
+                "surface_pressure": weather.surface_pressure if weather else None,
+                "weather_id": weather.id if weather else None,
+                "weather_observed_at": weather.observed_at if weather else None,
+            }
+        )
+
+    return results
 
 
 @router.get("/", response_model=list[GullRead])
@@ -154,6 +211,7 @@ def get_gull_movement_summary(gull_id: int, db: Session = Depends(get_db)):
         average_temperature_c=avg_temp,
         average_precipitation_mm=avg_precip,
     )
+
 
 @router.put("/{gull_id}", response_model=GullRead)
 def update_gull_full(gull_id: int, payload: GullCreate, db: Session = Depends(get_db)):

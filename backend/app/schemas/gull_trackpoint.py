@@ -3,6 +3,27 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class TrackpointWithWeatherRead(BaseModel):
+    id: int
+    gull_id: int
+    recorded_at: datetime
+    latitude: float
+    longitude: float
+    event_id: str | None = None
+    sensor_type: str | None = None
+    visible: str | None = None
+
+    temperature_c: float | None = None
+    precipitation_mm: float | None = None
+    wind_u: float | None = None
+    wind_v: float | None = None
+    surface_pressure: float | None = None
+    weather_id: int | None = None
+    weather_observed_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class GullTrackPointBase(BaseModel):
     gull_id: int
     recorded_at: datetime
