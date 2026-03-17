@@ -8,6 +8,7 @@ from app.schemas.weather import (
     WeatherCoverageRead,
     WeatherObservationCreate,
     WeatherObservationRead,
+    WeatherObservationUpdate,
 )
 
 router = APIRouter()
@@ -31,23 +32,6 @@ def create_weather(payload: WeatherObservationCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(weather)
     return weather
-
-
-@router.get("/{weather_id}", response_model=WeatherObservationRead)
-def get_weather(weather_id: int, db: Session = Depends(get_db)):
-    weather = db.get(WeatherObservation, weather_id)
-    if not weather:
-        raise HTTPException(status_code=404, detail="Weather observation not found.")
-    return weather
-
-
-@router.delete("/{weather_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_weather(weather_id: int, db: Session = Depends(get_db)):
-    weather = db.get(WeatherObservation, weather_id)
-    if not weather:
-        raise HTTPException(status_code=404, detail="Weather observation not found.")
-    db.delete(weather)
-    db.commit()
 
 
 @router.get("/coverage/summary", response_model=WeatherCoverageRead)
@@ -74,3 +58,42 @@ def weather_coverage(db: Session = Depends(get_db)):
         "earliest_timestamp": earliest,
         "latest_timestamp": latest,
     }
+
+
+@router.get("/{weather_id}", response_model=WeatherObservationRead)
+def get_weather(weather_id: int, db: Session = Depends(get_db)):
+    weather = db.get(WeatherObservation, weather_id)
+    if not weather:
+        raise HTTPException(status_code=404, detail="Weather observation not found.")
+    return weather
+
+
+@router.put("/{weather_id}", response_model=WeatherObservationRead)
+def update_weather(
+    weather_id: int,
+    payload: WeatherObservationUpdate,
+    db: Session = Depends(get_db),
+):
+    weather = db.get(WeatherObservation, weather_id)
+    if not weather:
+        raise HTTPException(status_code=404, detail="Weather observation not found.")
+
+    update_data = payload.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(weather, field, value)
+
+    db.add(weather)
+    db.commit()
+    db.refresh(weather)
+    return weather
+
+
+@router.delete("/{weather_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_weather(weather_id: int, db: Session = Depends(get_db)):
+    weather = db.get(WeatherObservation, weather_id)
+    if not weather:
+        raise HTTPException(status_code=404, detail="Weather observation not found.")
+
+    db.delete(weather)
+    db.commit()

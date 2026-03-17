@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from app.api.v1.endpoints import gull_trackpoints, gulls, weather
 
 api_router = APIRouter()

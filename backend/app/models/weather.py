@@ -10,7 +10,9 @@ class WeatherObservation(Base):
     __tablename__ = "weather_observations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
