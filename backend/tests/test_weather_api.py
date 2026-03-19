@@ -22,7 +22,9 @@ def test_create_weather(client, weather_payload_1):
     assert data["dataset_name"] == "unit-test-weather"
 
 
-def test_list_weather_and_filter_by_year(client, create_weather, weather_payload_1, weather_payload_2, weather_payload_3):
+def test_list_weather_and_filter_by_year(
+    client, create_weather, weather_payload_1, weather_payload_2, weather_payload_3
+):
     base = _weather_base_path(client)
 
     create_weather(weather_payload_1)
@@ -48,7 +50,18 @@ def test_get_weather_by_id(client, create_weather, weather_payload_1):
     assert data["source"] == weather_payload_1["source"]
 
 
-def test_weather_update_method_is_not_supported(client, create_weather, weather_payload_1):
+def test_get_weather_unknown_id_returns_404(client):
+    response = client.get("/api/v1/weather/999999")
+    assert response.status_code == 404, response.text
+    assert response.json()["detail"] == "Weather observation not found."
+
+
+def test_get_weather_invalid_path_type_returns_422(client):
+    response = client.get("/api/v1/weather/not-an-int")
+    assert response.status_code == 422, response.text
+
+
+def test_put_updates_weather_fully(client, create_weather, weather_payload_1):
     created = create_weather(weather_payload_1)
 
     update_payload = {
@@ -66,7 +79,80 @@ def test_weather_update_method_is_not_supported(client, create_weather, weather_
     }
 
     response = client.put(f"/api/v1/weather/{created['id']}", json=update_payload)
-    assert response.status_code == 405, response.text
+    assert response.status_code == 200, response.text
+
+    data = response.json()
+    assert data["id"] == created["id"]
+    assert data["observed_at"].startswith("2009-07-01T10:30:00")
+    assert data["latitude"] == 53.8010
+    assert data["longitude"] == -1.5510
+    assert data["year"] == 2009
+    assert data["temperature_c"] == 20.4
+    assert data["precipitation_mm"] == 0.6
+    assert data["wind_u"] == 0.9
+    assert data["wind_v"] == 0.1
+    assert data["surface_pressure"] == 1010.5
+    assert data["source"] == "test-updated"
+    assert data["dataset_name"] == "unit-test-weather-updated"
+
+    get_response = client.get(f"/api/v1/weather/{created['id']}")
+    assert get_response.status_code == 200, get_response.text
+
+    persisted = get_response.json()
+    assert persisted["temperature_c"] == 20.4
+    assert persisted["source"] == "test-updated"
+    assert persisted["dataset_name"] == "unit-test-weather-updated"
+
+
+def test_put_weather_unknown_id_returns_404(client, weather_payload_1):
+    response = client.put("/api/v1/weather/999999", json=weather_payload_1)
+    assert response.status_code == 404, response.text
+    assert response.json()["detail"] == "Weather observation not found."
+
+
+def test_patch_updates_weather_partially(client, create_weather, weather_payload_1):
+    created = create_weather(weather_payload_1)
+
+    patch_payload = {
+        "temperature_c": 21.7,
+        "source": "patched-source",
+        "dataset_name": "patched-dataset",
+    }
+
+    response = client.patch(f"/api/v1/weather/{created['id']}", json=patch_payload)
+    assert response.status_code == 200, response.text
+
+    data = response.json()
+    assert data["id"] == created["id"]
+    assert data["temperature_c"] == 21.7
+    assert data["source"] == "patched-source"
+    assert data["dataset_name"] == "patched-dataset"
+
+    assert data["latitude"] == weather_payload_1["latitude"]
+    assert data["longitude"] == weather_payload_1["longitude"]
+    assert data["year"] == weather_payload_1["year"]
+    assert data["precipitation_mm"] == weather_payload_1["precipitation_mm"]
+    assert data["wind_u"] == weather_payload_1["wind_u"]
+    assert data["wind_v"] == weather_payload_1["wind_v"]
+    assert data["surface_pressure"] == weather_payload_1["surface_pressure"]
+
+    get_response = client.get(f"/api/v1/weather/{created['id']}")
+    assert get_response.status_code == 200, get_response.text
+
+    persisted = get_response.json()
+    assert persisted["temperature_c"] == 21.7
+    assert persisted["source"] == "patched-source"
+    assert persisted["dataset_name"] == "patched-dataset"
+
+
+def test_patch_weather_unknown_id_returns_404(client):
+    response = client.patch(
+        "/api/v1/weather/999999",
+        json={"temperature_c": 22.0},
+    )
+    assert response.status_code == 404, response.text
+    assert response.json()["detail"] == "Weather observation not found."
+
 
 def test_delete_weather(client, create_weather, weather_payload_1):
     created = create_weather(weather_payload_1)
@@ -75,10 +161,18 @@ def test_delete_weather(client, create_weather, weather_payload_1):
     assert response.status_code == 204, response.text
 
     get_response = client.get(f"/api/v1/weather/{created['id']}")
-    assert get_response.status_code in {404, 422}, get_response.text
+    assert get_response.status_code == 404, get_response.text
 
 
-def test_weather_coverage_summary(client, create_weather, weather_payload_1, weather_payload_2, weather_payload_3):
+def test_delete_weather_unknown_id_returns_404(client):
+    response = client.delete("/api/v1/weather/999999")
+    assert response.status_code == 404, response.text
+    assert response.json()["detail"] == "Weather observation not found."
+
+
+def test_weather_coverage_summary(
+    client, create_weather, weather_payload_1, weather_payload_2, weather_payload_3
+):
     create_weather(weather_payload_1)
     create_weather(weather_payload_2)
     create_weather(weather_payload_3)

@@ -27,7 +27,28 @@ def test_create_trackpoint(client, create_gull, gull_payload):
     assert data["event_id"] == "TRACK-1"
 
 
-def test_list_trackpoints_and_filter_by_gull_id(client, create_gull, create_trackpoint, gull_payload, second_gull_payload):
+def test_create_trackpoint_with_nonexistent_gull_id_fails(client):
+    payload = {
+        "gull_id": 999999,
+        "recorded_at": "2009-07-01T10:05:00Z",
+        "latitude": 53.8000,
+        "longitude": -1.5500,
+        "event_id": "BAD-FK",
+        "sensor_type": "gps",
+        "visible": "true",
+    }
+
+    response = client.post("/api/v1/trackpoints", json=payload)
+    if response.status_code == 404:
+        response = client.post("/api/v1/trackpoints/", json=payload)
+
+    assert response.status_code == 404, response.text
+    assert "not found" in response.json()["detail"].lower()
+
+
+def test_list_trackpoints_and_filter_by_gull_id(
+    client, create_gull, create_trackpoint, gull_payload, second_gull_payload
+):
     gull_a = create_gull(gull_payload)
     gull_b = create_gull(second_gull_payload)
 
@@ -87,6 +108,16 @@ def test_get_trackpoint_by_id(client, create_gull, create_trackpoint, gull_paylo
 
     assert data["id"] == created["id"]
     assert data["event_id"] == "TP-GET-1"
+
+
+def test_get_trackpoint_unknown_id_returns_404(client):
+    response = client.get("/api/v1/trackpoints/999999")
+    assert response.status_code == 404, response.text
+
+
+def test_get_trackpoint_invalid_path_type_returns_422(client):
+    response = client.get("/api/v1/trackpoints/not-an-int")
+    assert response.status_code == 422, response.text
 
 
 def test_put_trackpoint(client, create_gull, create_trackpoint, gull_payload):
@@ -169,7 +200,12 @@ def test_delete_trackpoint(client, create_gull, create_trackpoint, gull_payload)
     assert response.status_code == 204, response.text
 
     get_response = client.get(f"/api/v1/trackpoints/{created['id']}")
-    assert get_response.status_code in {404, 422}, get_response.text
+    assert get_response.status_code == 404, get_response.text
+
+
+def test_delete_trackpoint_unknown_id_returns_404(client):
+    response = client.delete("/api/v1/trackpoints/999999")
+    assert response.status_code == 404, response.text
 
 
 def test_trackpoint_validation_rejects_invalid_latitude(client, create_gull, gull_payload):
@@ -266,3 +302,8 @@ def test_get_trackpoint_weather_match(client, seeded_route):
     assert "time_difference_minutes" in data
     assert "distance_km" in data
     assert "temperature_c" in data
+
+
+def test_get_trackpoint_weather_match_unknown_id_returns_404(client):
+    response = client.get("/api/v1/trackpoints/999999/weather")
+    assert response.status_code == 404, response.text

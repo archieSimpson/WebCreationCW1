@@ -862,6 +862,28 @@ export default function DataManagerUI() {
       handleError(error);
     }
   }
+  async function deleteWeather(id) {
+    if (!window.confirm(`Delete weather row ${id}?`)) {
+      return;
+    }
+  
+    const previous = weather;
+    setWeather((prev) =>
+      prev.filter((item) => String(item.id) !== String(id))
+    );
+  
+    try {
+      await fetchJson(`/api/v1/weather/${id}`, { method: "DELETE" });
+      showSuccess("Weather row deleted.");
+  
+      if (String(weatherForm.id) === String(id)) {
+        resetWeatherForm();
+      }
+    } catch (error) {
+      setWeather(previous);
+      handleError(error);
+    }
+  }
 
   async function deleteTrackpoint(id) {
     if (!window.confirm(`Delete trackpoint ${id}?`)) {
@@ -886,86 +908,6 @@ export default function DataManagerUI() {
     }
   }
 
-  async function submitWeather(e) {
-    e.preventDefault();
-  
-    try {
-      const observedAtIso = toIsoOrNull(weatherForm.observed_at);
-  
-      if (!observedAtIso) {
-        throw new Error("Observed at is required and must be valid.");
-      }
-  
-      const lat = Number(weatherForm.latitude);
-      const lng = Number(weatherForm.longitude);
-  
-      if (Number.isNaN(lat) || lat < -90 || lat > 90) {
-        throw new Error("Latitude must be between -90 and 90.");
-      }
-  
-      if (Number.isNaN(lng) || lng < -180 || lng > 180) {
-        throw new Error("Longitude must be between -180 and 180.");
-      }
-  
-      const derivedYear = new Date(observedAtIso).getUTCFullYear();
-  
-      const payload = {
-        observed_at: observedAtIso,
-        latitude: lat,
-        longitude: lng,
-        year: weatherForm.year === "" ? derivedYear : Number(weatherForm.year),
-        temperature_c:
-          weatherForm.temperature_c === "" ? null : Number(weatherForm.temperature_c),
-        precipitation_mm:
-          weatherForm.precipitation_mm === ""
-            ? null
-            : Number(weatherForm.precipitation_mm),
-        wind_u: weatherForm.wind_u === "" ? null : Number(weatherForm.wind_u),
-        wind_v: weatherForm.wind_v === "" ? null : Number(weatherForm.wind_v),
-        surface_pressure:
-          weatherForm.surface_pressure === ""
-            ? null
-            : Number(weatherForm.surface_pressure),
-        source: weatherForm.source?.trim() ? weatherForm.source.trim() : null,
-        dataset_name: weatherForm.dataset_name?.trim()
-          ? weatherForm.dataset_name.trim()
-          : null
-      };
-  
-      if (Number.isNaN(payload.year)) {
-        throw new Error("Year must be a valid number.");
-      }
-  
-      if (weatherForm.id) {
-        const updated = await fetchJson(`/api/v1/weather/${weatherForm.id}`, {
-          method: "PUT",
-          body: JSON.stringify(payload)
-        });
-  
-        setWeather((prev) =>
-          prev.map((item) =>
-            String(item.id) === String(weatherForm.id) ? updated : item
-          )
-        );
-  
-        showSuccess("Weather row updated.");
-      } else {
-        const created = await fetchJson("/api/v1/weather", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-  
-        setWeather((prev) => [created, ...prev]);
-        showSuccess("Weather row created.");
-      }
-  
-      resetWeatherForm();
-      setLoadedTabs((prev) => ({ ...prev, weather: true }));
-      setWeatherPage(1);
-    } catch (error) {
-      handleError(error);
-    }
-  }
   
   async function applyTrackpointFilter() {
     setAppliedTrackpointFilterGullId(trackpointFilterGullId);
