@@ -3,39 +3,30 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite3
 
 # Virtual environments
 .venv/
 venv/
 env/
 
-# Environment variables
+# Environment files
 .env
+.env.*
 
-# Pytest
-.pytest_cache/
-
-# Coverage
-.coverage
-htmlcov/
-
-# Alembic / migrations cache
-*.sqlite3
-
-# macOS
-.DS_Store
-
-# VS Code
-.vscode/
-
-# Build artifacts
+# Node
+node_modules/
 dist/
-build/
-*.egg-info/
+npm-debug.log*
 
-# Logs
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Misc
 *.log
-
-data/
-.csv
-# 
