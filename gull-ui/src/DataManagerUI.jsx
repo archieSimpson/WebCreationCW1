@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API = "http://127.0.0.1:8000";
+const API = "https://webcreationcw1.onrender.com";
 const PAGE_SIZE = 50;
 
 function buildUrl(path) {
