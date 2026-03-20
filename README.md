@@ -184,12 +184,6 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Access docs:
-
-```
-http://127.0.0.1:8000/docs
-```
-
 ---
 
 ## Deployment
