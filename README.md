@@ -6,7 +6,7 @@ This project provides a production-style REST API alongside an interactive geosp
 
 ---
 
-## 🚀 Live System
+## Live System
 
 * **API Base URL**
   https://webcreationcw1.onrender.com
